@@ -14,12 +14,14 @@ namespace Application.Services.Account.Implementations
     {
         private readonly IAccountRepository _accountRepository;
         private readonly IAppUserRepository _userRepository;
+        private readonly IPasswordHasher _passwordHasher;
         private readonly ITokenService _tokenService;
-        public AccountService(IAccountRepository repository, IAppUserRepository userRepository, ITokenService tokenService)
+        public AccountService(IAccountRepository repository, IAppUserRepository userRepository, ITokenService tokenService, IPasswordHasher passwordHasher)
         {
             _accountRepository = repository;
             _userRepository = userRepository;
             _tokenService = tokenService;
+            _passwordHasher = passwordHasher;
         }
 
         public async Task<RequestResult<UserDto>> Register(RegisterDto registerDto)
@@ -52,26 +54,22 @@ namespace Application.Services.Account.Implementations
             if (user == null)
                 return RequestResult<UserDto>.FailureResult("E-mail inválido ou inexistente.", null);
 
-            using var hmac = new HMACSHA512(user.PasswordSalt);
-            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(loginDto.Password));
+            var isPasswordValid = _passwordHasher.VerifyPassword(loginDto.Password, user.PasswordHash, user.PasswordSalt);
 
-            for (int i = 0; i < computedHash.Length; i++)
+            if (!isPasswordValid)
             {
-                if (computedHash[i] != user.PasswordHash[i])
-                {
-                    return RequestResult<UserDto>.FailureResult("Senha inválida.", null);
-                }
+                return RequestResult<UserDto>.FailureResult("Senha inválida.", null);
             }
 
             return RequestResult<UserDto>.SuccessResult(
             [
                 new UserDto()
-                {
-                    Username = user.UserName,
-                    Email = user.Email,
-                    Token = _tokenService.CreateToken(user)
-                }
-             ]);
+            {
+                Username = user.UserName,
+                Email = user.Email,
+                Token = _tokenService.CreateToken(user)
+            }
+            ]);
         }
 
         public async Task<RequestResult<UpdatedUserDto>> UpdateUsername(UpdateUsernameDto userDto)

@@ -5,8 +5,6 @@ using Application.Services.Auth.Interfaces;
 using Domain.Entities;
 using Domain.Interfaces;
 using Moq;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Tests.AccountServiceTests
 {
@@ -15,6 +13,7 @@ namespace Tests.AccountServiceTests
         private readonly Mock<IAccountRepository> _accountRepositoryMock;
         private readonly Mock<IAppUserRepository> _userRepositoryMock;
         private readonly Mock<ITokenService> _tokenServiceMock;
+        private readonly Mock<IPasswordHasher> _passwordHasherServiceMock;
         private readonly IAccountService _accountService;
 
         public AccountServiceTests()
@@ -22,8 +21,9 @@ namespace Tests.AccountServiceTests
             _accountRepositoryMock = new Mock<IAccountRepository>();
             _userRepositoryMock = new Mock<IAppUserRepository>();
             _tokenServiceMock = new Mock<ITokenService>();
+            _passwordHasherServiceMock = new Mock<IPasswordHasher>();
 
-            _accountService = new AccountService(_accountRepositoryMock.Object, _userRepositoryMock.Object, _tokenServiceMock.Object);
+            _accountService = new AccountService(_accountRepositoryMock.Object, _userRepositoryMock.Object, _tokenServiceMock.Object, _passwordHasherServiceMock.Object);
         }
 
         [Fact]
@@ -60,13 +60,10 @@ namespace Tests.AccountServiceTests
         public async Task DeveLogarComSucesso()
         {
             var loginDto = new LoginDto { Email = "usuario@dominio.com", Password = "123456" };
+            var user = new AppUser("usuario", "usuario@dominio.com", new byte[64], new byte[128]);
 
-            using var hmac = new HMACSHA512();
-            var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(loginDto.Password));
-            var passwordSalt = hmac.Key;
-
-            var user = new AppUser("usuario", "usuario@dominio.com", passwordHash, passwordSalt);
             _userRepositoryMock.Setup(x => x.GetByEmail(It.IsAny<string>())).ReturnsAsync(user);
+            _passwordHasherServiceMock.Setup(x => x.VerifyPassword(loginDto.Password, user.PasswordHash, user.PasswordSalt)).Returns(true);
             _tokenServiceMock.Setup(x => x.CreateToken(user)).Returns("token");
 
             var result = await _accountService.Login(loginDto);

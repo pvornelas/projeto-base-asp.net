@@ -34,6 +34,7 @@ namespace Application.Extensions
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<IAppUserService, AppUserService>();
             services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<IPasswordHasher, PasswordHasher>();
 
             return services;
         }
