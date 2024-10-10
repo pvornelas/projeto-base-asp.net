@@ -69,11 +69,11 @@ namespace Tests.AccountServiceTests
             _userRepositoryMock.Setup(x => x.GetByEmail(It.IsAny<string>())).ReturnsAsync(user);
             _tokenServiceMock.Setup(x => x.CreateToken(user)).Returns("token");
 
-
             var result = await _accountService.Login(loginDto);
 
             Assert.True(result.Success);
             Assert.Equal("usuario", result.Data.First().Username);
+            Assert.Equal("usuario@dominio.com", result.Data.First().Email);
             Assert.Equal("token", result.Data.First().Token);
         }
 
