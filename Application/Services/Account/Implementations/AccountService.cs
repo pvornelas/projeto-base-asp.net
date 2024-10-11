@@ -63,12 +63,12 @@ namespace Application.Services.Account.Implementations
 
             return RequestResult<UserDto>.SuccessResult(
             [
-                new UserDto()
-            {
-                Username = user.UserName,
-                Email = user.Email,
-                Token = _tokenService.CreateToken(user)
-            }
+                 new UserDto()
+                {
+                    Username = user.UserName,
+                    Email = user.Email,
+                    Token = _tokenService.CreateToken(user)
+                }
             ]);
         }
 

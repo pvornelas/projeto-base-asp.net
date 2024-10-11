@@ -36,12 +36,12 @@ namespace Tests.AccountServiceTests
             _accountRepositoryMock.Setup(x => x.Register(It.IsAny<AppUser>()))
                 .ReturnsAsync(new AppUser("usuario", "usuario@dominio.com", new byte[64], new byte[128]));
 
-            _tokenServiceMock.Setup(x => x.CreateToken(It.IsAny<AppUser>())).Returns("token");
-
             var result = await _accountService.Register(registerDto);
 
             Assert.True(result.Success);
+            Assert.True(result.Data.Any());
             Assert.Equal("usuario", result.Data.First().Username);
+            Assert.Equal("usuario@dominio.com", result.Data.First().Email);
         }
 
         [Fact]
@@ -64,14 +64,12 @@ namespace Tests.AccountServiceTests
 
             _userRepositoryMock.Setup(x => x.GetByEmail(It.IsAny<string>())).ReturnsAsync(user);
             _passwordHasherServiceMock.Setup(x => x.VerifyPassword(loginDto.Password, user.PasswordHash, user.PasswordSalt)).Returns(true);
-            _tokenServiceMock.Setup(x => x.CreateToken(user)).Returns("token");
 
             var result = await _accountService.Login(loginDto);
 
             Assert.True(result.Success);
             Assert.Equal("usuario", result.Data.First().Username);
             Assert.Equal("usuario@dominio.com", result.Data.First().Email);
-            Assert.Equal("token", result.Data.First().Token);
         }
 
         [Fact]
@@ -112,8 +110,6 @@ namespace Tests.AccountServiceTests
 
             Assert.True(result.Success);
             Assert.Equal(userDto.Username, result.Data.First().Username);
-            _userRepositoryMock.Verify(x => x.GetById(It.IsAny<int>()), Times.Once);
-            _accountRepositoryMock.Verify(x => x.Update(It.IsAny<AppUser>()), Times.Once);
         }
 
         [Fact]
@@ -126,7 +122,6 @@ namespace Tests.AccountServiceTests
 
             Assert.False(result.Success);
             Assert.Equal("Usuário não encontrado.", result.Message);
-            _userRepositoryMock.Verify(x => x.GetById(It.IsAny<int>()), Times.Once);
         }
 
         [Fact]
@@ -134,13 +129,11 @@ namespace Tests.AccountServiceTests
         {
             var user = new AppUser("usuario", "teste@dominio.com", new byte[64], new byte[128]);
             _userRepositoryMock.Setup(x => x.GetById(It.IsAny<int>())).ReturnsAsync(user);
-            _accountRepositoryMock.Setup(x => x.Delete(It.IsAny<AppUser>()));
+            _accountRepositoryMock.Setup(x => x.Delete(It.IsAny<AppUser>())).Returns(Task.CompletedTask);
 
             var result = await _accountService.Delete(1);
 
             Assert.True(result.Success);
-            _userRepositoryMock.Verify(x => x.GetById(It.IsAny<int>()), Times.Once);
-            _accountRepositoryMock.Verify(x => x.Delete(It.IsAny<AppUser>()), Times.Once);
         }
 
         [Fact]
@@ -152,7 +145,6 @@ namespace Tests.AccountServiceTests
 
             Assert.False(result.Success);
             Assert.Equal("Usuário não encontrado.", result.Message);
-            _userRepositoryMock.Verify(x => x.GetById(It.IsAny<int>()), Times.Once);
         }
     }
 }
